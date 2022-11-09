@@ -2,7 +2,15 @@
     {
         "id": "b72194e564a343a3",
         "type": "tab",
-        "label": "Flow 1",
+        "label": "Fluxo de Recebimento",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "5647476a7418cecb",
+        "type": "tab",
+        "label": "Fluxos de Fechamento de Ordem de serviço",
         "disabled": false,
         "info": "",
         "env": []
@@ -112,8 +120,8 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 1050,
-        "y": 560,
+        "x": 1030,
+        "y": 340,
         "wires": []
     },
     {
@@ -177,8 +185,8 @@
         "checkall": "true",
         "repair": false,
         "outputs": 2,
-        "x": 190,
-        "y": 460,
+        "x": 230,
+        "y": 340,
         "wires": [
             [
                 "ef50e6896d7c949e"
@@ -198,8 +206,8 @@
         "split": false,
         "rowsPerMsg": 1,
         "outputs": 1,
-        "x": 780,
-        "y": 440,
+        "x": 720,
+        "y": 480,
         "wires": [
             [
                 "f9f18537eb4cc676"
@@ -216,8 +224,8 @@
         "split": false,
         "rowsPerMsg": 1,
         "outputs": 1,
-        "x": 460,
-        "y": 440,
+        "x": 500,
+        "y": 300,
         "wires": [
             [
                 "b4f5a07843b94bed",
@@ -244,23 +252,13 @@
         "from": "",
         "to": "",
         "reg": false,
-        "x": 530,
-        "y": 520,
+        "x": 550,
+        "y": 400,
         "wires": [
             [
                 "afceeacd8650ae21"
             ]
         ]
-    },
-    {
-        "id": "7372d6056fc0b70e",
-        "type": "comment",
-        "z": "b72194e564a343a3",
-        "name": "Caso seja um novo abastecimento",
-        "info": "",
-        "x": 460,
-        "y": 340,
-        "wires": []
     },
     {
         "id": "f9f18537eb4cc676",
@@ -272,8 +270,8 @@
         "split": false,
         "rowsPerMsg": 1,
         "outputs": 1,
-        "x": 920,
-        "y": 500,
+        "x": 880,
+        "y": 400,
         "wires": [
             [
                 "7d6eb865597b9d3e"
@@ -293,7 +291,141 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 710,
+        "x": 730,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "fb28b333355f369b",
+        "type": "inject",
+        "z": "5647476a7418cecb",
+        "name": "Inject",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "30",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.1",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 60,
+        "wires": [
+            [
+                "3179054b82f6631a"
+            ]
+        ]
+    },
+    {
+        "id": "3179054b82f6631a",
+        "type": "postgresql",
+        "z": "5647476a7418cecb",
+        "name": "SELECT Ordens Abertas",
+        "query": "SELECT ID FROM ORDEM_SERVICO WHERE ESTADO = 'EM ANDAMENTO'; ",
+        "postgreSQLConfig": "720379f6ccca03f9",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 230,
+        "y": 120,
+        "wires": [
+            [
+                "6301b33b712605b2"
+            ]
+        ]
+    },
+    {
+        "id": "4c08f921167a4117",
+        "type": "postgresql",
+        "z": "5647476a7418cecb",
+        "name": "Executa Query",
+        "query": "{{{msg.select.query}}}",
+        "postgreSQLConfig": "720379f6ccca03f9",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 440,
+        "y": 240,
+        "wires": [
+            [
+                "f15575ad5f7e6c36"
+            ]
+        ]
+    },
+    {
+        "id": "6301b33b712605b2",
+        "type": "function",
+        "z": "5647476a7418cecb",
+        "name": "Monta Query SELECT",
+        "func": "msg.select = {}\ndata = new Date(Date.now()-30000).toUTCString()\n\nmsg.select.query = 'SELECT DISTINCT ID_ORDEM FROM DADOS_COLETADO WHERE  timestamp > \\''+ data+'\\'' ;\nmsg.select.id = []\nmsg.payload.forEach((ordem)=>{\n    msg.select.id.push(ordem.id)\n    msg.select.query += ' AND ID_ORDEM = ' +String(ordem.id)\n})\n\nmsg.select.query += ' ;'\n\nreturn msg",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 180,
+        "wires": [
+            [
+                "4c08f921167a4117"
+            ]
+        ]
+    },
+    {
+        "id": "f15575ad5f7e6c36",
+        "type": "function",
+        "z": "5647476a7418cecb",
+        "name": "Monta Query UPDATE",
+        "func": "function updateQuery(id){\n    msg.update.query += cont>0 ?' AND ' : ''\n    msg.update.query += 'ID = '+String(id)\n    cont += 1\n}\n\nmsg.update={}\nmsg.update.query = 'UPDATE ORDEM_SERVICO SET ESTADO = \\'FINALIZADA\\' WHERE '\ncont = 0\n\nmsg.select.id.forEach((id)=>{\n    if (msg.payload.length > 0){\n        msg.payload.forEach((query)=>{\n            \n            if (id !=query.id_ordem){\n                updateQuery(id)\n            }\n        })\n    }else{\n        updateQuery(id)\n    }\n})\nmsg.update.query += ' ;'\n\nif (cont >0) return msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 540,
+        "y": 300,
+        "wires": [
+            [
+                "db549acf55e38cac"
+            ]
+        ]
+    },
+    {
+        "id": "db549acf55e38cac",
+        "type": "postgresql",
+        "z": "5647476a7418cecb",
+        "name": "Executa Query",
+        "query": "{{{msg.update.query}}}",
+        "postgreSQLConfig": "720379f6ccca03f9",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 640,
+        "y": 360,
+        "wires": [
+            [
+                "40de038d5eac4023"
+            ]
+        ]
+    },
+    {
+        "id": "40de038d5eac4023",
+        "type": "debug",
+        "z": "5647476a7418cecb",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 850,
         "y": 360,
         "wires": []
     }
