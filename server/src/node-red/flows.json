@@ -1,0 +1,300 @@
+[
+    {
+        "id": "b72194e564a343a3",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "c1a252f.b8d50b",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": ""
+    },
+    {
+        "id": "720379f6ccca03f9",
+        "type": "postgreSQLConfig",
+        "name": "",
+        "host": "db",
+        "hostFieldType": "str",
+        "port": "5432",
+        "portFieldType": "num",
+        "database": "argos",
+        "databaseFieldType": "str",
+        "ssl": "false",
+        "sslFieldType": "bool",
+        "max": "10",
+        "maxFieldType": "num",
+        "min": "1",
+        "minFieldType": "num",
+        "idle": "1000",
+        "idleFieldType": "num",
+        "connectionTimeout": "10000",
+        "connectionTimeoutFieldType": "num",
+        "user": "nodered",
+        "userFieldType": "str",
+        "password": "noderedUser",
+        "passwordFieldType": "str"
+    },
+    {
+        "id": "a85caed63251a0c7",
+        "type": "aedes broker",
+        "z": "b72194e564a343a3",
+        "name": "",
+        "mqtt_port": 1883,
+        "mqtt_ws_bind": "port",
+        "mqtt_ws_port": "",
+        "mqtt_ws_path": "",
+        "cert": "",
+        "key": "",
+        "certname": "",
+        "keyname": "",
+        "dburl": "",
+        "usetls": false,
+        "x": 110,
+        "y": 40,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
+        "id": "1fc5f4dd6351f799",
+        "type": "function",
+        "z": "b72194e564a343a3",
+        "name": "Append TimeStamp and Dif",
+        "func": "msg.payload.timestamp =new Date(Date.now()).toUTCString()\noutFuel = msg.payload.saidaCombustivel\ninFuel = msg.payload.entradaCombustivel\n\n\n\n\nif ((outFuel != null)&&(inFuel !=null)){\n    msg.payload.diferenca = outFuel - inFuel;\n    msg.data = msg.payload;\n    return msg\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 240,
+        "y": 200,
+        "wires": [
+            [
+                "2f6d297462aae5ca"
+            ]
+        ]
+    },
+    {
+        "id": "7d6eb865597b9d3e",
+        "type": "debug",
+        "z": "b72194e564a343a3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1050,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "7867a2b11134cbba",
+        "type": "mqtt in",
+        "z": "b72194e564a343a3",
+        "name": "",
+        "topic": "ARGOS",
+        "qos": "2",
+        "datatype": "json",
+        "broker": "c1a252f.b8d50b",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 80,
+        "y": 140,
+        "wires": [
+            [
+                "1fc5f4dd6351f799"
+            ]
+        ]
+    },
+    {
+        "id": "2f6d297462aae5ca",
+        "type": "postgresql",
+        "z": "b72194e564a343a3",
+        "name": "Seleciona Ordem de Serviço",
+        "query": "SELECT * FROM ORDEM_SERVICO WHERE ESTADO = 'EM ANDAMENTO' AND SENSOR = '{{{msg.data.sensor}}}';",
+        "postgreSQLConfig": "720379f6ccca03f9",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 200,
+        "y": 260,
+        "wires": [
+            [
+                "783aac84b6db1ba1"
+            ]
+        ]
+    },
+    {
+        "id": "783aac84b6db1ba1",
+        "type": "switch",
+        "z": "b72194e564a343a3",
+        "name": "Ordem de Serviço Existe?",
+        "property": "payload.length",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "0",
+                "vt": "num"
+            },
+            {
+                "t": "gt",
+                "v": "0",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 190,
+        "y": 460,
+        "wires": [
+            [
+                "ef50e6896d7c949e"
+            ],
+            [
+                "b4f5a07843b94bed"
+            ]
+        ]
+    },
+    {
+        "id": "afceeacd8650ae21",
+        "type": "postgresql",
+        "z": "b72194e564a343a3",
+        "name": "INSERT DADO COLETADO",
+        "query": "INSERT INTO DADOS_COLETADO(id_ordem,sensor, entrada_combustivel, saida_combustivel , diferenca , \"timestamp\"  ) values ({{{msg.data.id}}} ,'{{{msg.data.sensor}}}' , {{{msg.data.entradaCombustivel}}} , {{{msg.data.saidaCombustivel}}} , {{{msg.data.diferenca}}} , '{{{msg.data.timestamp}}}');\n",
+        "postgreSQLConfig": "720379f6ccca03f9",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 780,
+        "y": 440,
+        "wires": [
+            [
+                "f9f18537eb4cc676"
+            ]
+        ]
+    },
+    {
+        "id": "ef50e6896d7c949e",
+        "type": "postgresql",
+        "z": "b72194e564a343a3",
+        "name": "CRIA NOVA ORDEM",
+        "query": "INSERT INTO ORDEM_SERVICO(SENSOR) VALUES ('{{{msg.data.sensor}}}');\nSELECT ID FROM ORDEM_SERVICO WHERE SENSOR = '{{{msg.data.sensor}}}';\n\n\n",
+        "postgreSQLConfig": "720379f6ccca03f9",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 460,
+        "y": 440,
+        "wires": [
+            [
+                "b4f5a07843b94bed",
+                "ac6e33a91f583182"
+            ]
+        ]
+    },
+    {
+        "id": "b4f5a07843b94bed",
+        "type": "change",
+        "z": "b72194e564a343a3",
+        "name": "Seta Id da Ordem",
+        "rules": [
+            {
+                "t": "set",
+                "p": "data.id",
+                "pt": "msg",
+                "to": "payload[0].id",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 530,
+        "y": 520,
+        "wires": [
+            [
+                "afceeacd8650ae21"
+            ]
+        ]
+    },
+    {
+        "id": "7372d6056fc0b70e",
+        "type": "comment",
+        "z": "b72194e564a343a3",
+        "name": "Caso seja um novo abastecimento",
+        "info": "",
+        "x": 460,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "f9f18537eb4cc676",
+        "type": "postgresql",
+        "z": "b72194e564a343a3",
+        "name": "Atualiza Ordem",
+        "query": "UPDATE ORDEM_SERVICO SET \nabastecimento_efetivo = {{msg.data.entradaCombustivel}} + abastecimento_efetivo, \nvazamento = {{msg.data.diferenca}} + vazamento ,\nvalor = ({{msg.data.entradaCombustivel}} + abastecimento_efetivo)*3.5\nWHERE estado = 'EM ANDAMENTO' AND  sensor = '{{msg.data.sensor}}';\n\nUPDATE ORDEM_SERVICO SET \nseveridade_vazamento = (\nselect severidade  from CAT_SEVERIDADE_VAZAMENTO \nwhere VAZAMENTO < (select vazamento from ordem_servico where ESTADO ='EM ANDAMENTO'and sensor ='{{msg.data.sensor}}') \nOR severidade = 'NULO' order by vazamento desc limit 1)\nWHERE estado = 'EM ANDAMENTO' AND  sensor = '{{msg.data.sensor}}';",
+        "postgreSQLConfig": "720379f6ccca03f9",
+        "split": false,
+        "rowsPerMsg": 1,
+        "outputs": 1,
+        "x": 920,
+        "y": 500,
+        "wires": [
+            [
+                "7d6eb865597b9d3e"
+            ]
+        ]
+    },
+    {
+        "id": "ac6e33a91f583182",
+        "type": "debug",
+        "z": "b72194e564a343a3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 710,
+        "y": 360,
+        "wires": []
+    }
+]
