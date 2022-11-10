@@ -15,4 +15,6 @@ argosAdmin/argosAdmin
 BrokeMQTT
 argos/@rg0sSens0r
 
+docker run --rm -p 3001:3000 --name=grafana -v server/src/grafana/temp:/etc/grafana  grafana/grafana-enterprise
 
+docker run --rm --network argos_argos -p 80:80 -v $PWD/server/src/nginx:/etc/nginx/ --name nginx nginx:1.21.6 

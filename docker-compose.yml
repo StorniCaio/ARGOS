@@ -1,0 +1,87 @@
+version: '3'
+
+networks:
+  argos:
+    driver: bridge
+    
+volumes:
+  db:
+    driver: local
+    external: false
+
+  pgAdmin:
+    driver: local
+    external: false
+
+  grafana:
+    driver: local
+    external: false
+
+services:
+  node-red:
+            build:
+                dockerfile: Dockerfile
+                context: ./server/src/node-red/
+            image: argos/process:1.0
+            networks: 
+              - argos
+            container_name: argos_process
+            environment:
+              - NODE_RED_CREDENTIAL_SECRET=my_credential_password
+              - TZ=America/Sao_Paulo
+            depends_on:
+              - db
+            restart: always
+  db:
+            build:
+                dockerfile: Dockerfile
+                context: ./server/src/db/
+            image: argos/db:1.0
+            networks: 
+              - argos
+            volumes: 
+              - db:/var/lib/postgresql/data
+            container_name: argos_db
+            environment:
+              - POSTGRES_PASSWORD=P0stgr&s
+            restart: always
+  pgAdmin:
+            image: dpage/pgadmin4:6.9
+            container_name: argos_pgAdmin
+            environment:
+              - PGADMIN_DEFAULT_USER=argosAdmin
+              - PGADMIN_DEFAULT_EMAIL=argos@admin.com
+              - PGADMIN_DEFAULT_PASSWORD=argosAdmin
+            networks:
+              - argos
+            volumes:
+              - pgAdmin:/var/lib/pgadmin
+            depends_on:
+              - db
+            restart: always
+  grafana:
+            build:
+                dockerfile: Dockerfile
+                context: ./server/src/grafana/
+            image: argos/dashboard:1.0
+            networks: 
+              - argos
+            depends_on:
+              - db
+            container_name: argos_dashboard
+            restart: always
+  nginx:
+            build:
+                dockerfile: Dockerfile
+                context: ./server/src/nginx/
+            image: argos/api:1.0
+            networks: 
+              - argos
+            depends_on:
+              - grafana
+              - node-red
+              - pgAdmin
+            ports:
+              - 80:80
+            container_name: argos_api
+            restart: always
