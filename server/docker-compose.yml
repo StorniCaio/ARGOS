@@ -21,7 +21,7 @@ services:
   node-red:
             build:
                 dockerfile: Dockerfile
-                context: ./server/src/node-red/
+                context: ./src/node-red/
             image: argos/process:1.0
             networks: 
               - argos
@@ -35,7 +35,7 @@ services:
   db:
             build:
                 dockerfile: Dockerfile
-                context: ./server/src/db/
+                context: ./src/db/
             image: argos/db:1.0
             networks: 
               - argos
@@ -62,7 +62,7 @@ services:
   grafana:
             build:
                 dockerfile: Dockerfile
-                context: ./server/src/grafana/
+                context: ./src/grafana/
             image: argos/dashboard:1.0
             networks: 
               - argos
@@ -73,7 +73,7 @@ services:
   nginx:
             build:
                 dockerfile: Dockerfile
-                context: ./server/src/nginx/
+                context: ./src/nginx/
             image: argos/api:1.0
             networks: 
               - argos
@@ -83,5 +83,6 @@ services:
               - pgAdmin
             ports:
               - 80:80
+              - 1883:1883
             container_name: argos_api
             restart: always
